@@ -3,144 +3,104 @@
 <head>
   <meta charset="UTF-8">
   <title>Panel Admin - TAKE</title>
-  <style>
-    body { font-family: Arial, sans-serif; background: #f5f5f5; padding: 20px; }
-    h1 { color: #333; }
-    table { width: 100%; border-collapse: collapse; background: white; }
-    th, td { padding: 12px; border: 1px solid #ddd; text-align: center; }
-    th { background: #222; color: white; }
-    .estado { font-weight: bold; padding: 6px 10px; border-radius: 5px; }
-    .PENDIENTE { background: #fff3cd; color: #856404; }
-    .EN_CAMINO { background: #cce5ff; color: #004085; }
-    .ENTREGADO { background: #d4edda; color: #155724; }
 
-    button, .btn {
-      padding: 8px 12px;
-      margin: 3px;
-      cursor: pointer;
-      border: none;
-      border-radius: 5px;
-      background: #333;
-      color: white;
-      text-decoration: none;
-      display: inline-block;
-      font-size: 13px;
-    }
+  <link rel="icon" type="image/png" href="img/logo.png">
 
-    button:hover, .btn:hover { background: #555; }
-
-    .btn-ver {
-      background: #0d6efd;
-    }
-
-    .btn-ver:hover {
-      background: #084298;
-    }
-  </style>
+  <link rel="stylesheet" href="css/admin.css">
 </head>
 <body>
 
-  <h1>Panel Administrador - Pedidos Delivery TAKE</h1>
+<script>
+  const usuarioAdmin = JSON.parse(localStorage.getItem("usuarioAdminTAKE"));
 
-  <button onclick="listarPedidos()">Actualizar pedidos</button>
+  if (!usuarioAdmin) {
+    window.location.href = "login.html";
+  }
+</script>
 
-  <br><br>
+<header class="navbar">
+  <div class="logo">
+    <span>TAKE</span>
+    <small>Panel Administrador</small>
+  </div>
 
-  <table>
-    <thead>
-      <tr>
-        <th>ID</th>
-        <th>Cliente</th>
-        <th>Teléfono</th>
-        <th>Dirección</th>
-        <th>Detalle</th>
-        <th>Método Pago</th>
-        <th>Estado Pago</th>
-        <th>Total</th>
-        <th>Estado</th>
-        <th>Acción</th>
-        <th>Comprobante</th>
-        <th>Fecha</th>
-      </tr>
-    </thead>
-    <tbody id="tablaPedidos"></tbody>
-  </table>
+  <nav>
+    <a class="activo" href="admin.html">Pedidos</a>
+    <a href="productos-admin.html">Productos</a>
+    <a href="categorias-admin.html">Categorías</a>
+    <a href="repartidores-admin.html">Repartidores</a>
+    <a href="index.html">Inicio</a>
+    <a href="#" onclick="cerrarSesion()">Salir</a>
+  </nav>
+</header>
 
-  <script>
-    const API = "http://localhost:8081/api/pedidos";
-    const ID_USUARIO_ADMIN = 1;
+<main class="contenedor">
 
-    function listarPedidos() {
-      fetch(API)
-        .then(response => response.json())
-        .then(pedidos => {
-          const tabla = document.getElementById("tablaPedidos");
-          tabla.innerHTML = "";
+  <section class="bienvenida">
+    <div>
+      <h1>Pedidos Delivery</h1>
+      <p>Gestión de pedidos en tiempo real del restaurante TAKE.</p>
+    </div>
 
-          pedidos.forEach(pedido => {
-            const cliente = pedido.cliente || {};
-            const nombreCliente = cliente.nombre || "Sin cliente";
-            const telefono = cliente.telefono || "-";
-            const direccion = cliente.direccion || "-";
+    <button onclick="listarPedidos()">Actualizar pedidos</button>
+  </section>
 
-            tabla.innerHTML += `
-              <tr>
-                <td>${pedido.id}</td>
-                <td>${nombreCliente}</td>
-                <td>${telefono}</td>
-                <td>${direccion}</td>
-                <td>${(pedido.detallePedido || "-").replaceAll("|", "<br>")}</td>
-                <td>${pedido.metodoPago || "No especificado"}</td>
-                <td>${pedido.estadoPago || "No especificado"}</td>
-                <td>S/ ${Number(pedido.total || 0).toFixed(2)}</td>
-                <td>
-                  <span class="estado ${pedido.estado}">
-                    ${pedido.estado}
-                  </span>
-                </td>
-                <td>
-                  <button onclick="cambiarEstado(${pedido.id}, 'PENDIENTE')">Pendiente</button>
-                  <button onclick="cambiarEstado(${pedido.id}, 'EN_CAMINO')">En camino</button>
-                  <button onclick="cambiarEstado(${pedido.id}, 'ENTREGADO')">Entregado</button>
-                </td>
-                <td>
-                  <a class="btn btn-ver" href="http://localhost:8081/comprobante.html?id=${pedido.id}" target="_blank">
-                    Ver
-                  </a>
-                </td>
-                <td>${formatearFecha(pedido.fechaCreacion)}</td>
-              </tr>
-            `;
-          });
-        })
-        .catch(error => {
-          console.error("Error al listar pedidos:", error);
-          alert("No se pudieron cargar los pedidos");
-        });
-    }
+  <section class="stats">
+    <div class="stat-card">
+      <span>Total pedidos</span>
+      <strong id="totalPedidos">0</strong>
+    </div>
 
-    function cambiarEstado(id, estado) {
-      fetch(`${API}/${id}/estado?estado=${estado}&idUsuario=${ID_USUARIO_ADMIN}`, {
-        method: "PUT"
-      })
-      .then(response => response.json())
-      .then(data => {
-        alert("Estado actualizado a: " + data.estado);
-        listarPedidos();
-      })
-      .catch(error => {
-        console.error("Error al actualizar estado:", error);
-        alert("No se pudo actualizar el estado");
-      });
-    }
+    <div class="stat-card pendiente">
+      <span>Pendientes</span>
+      <strong id="totalPendientes">0</strong>
+    </div>
 
-    function formatearFecha(fecha) {
-      if (!fecha) return "";
-      return new Date(fecha).toLocaleString("es-PE");
-    }
+    <div class="stat-card camino">
+      <span>En camino</span>
+      <strong id="totalCamino">0</strong>
+    </div>
 
-    listarPedidos();
-  </script>
+    <div class="stat-card entregado">
+      <span>Entregados</span>
+      <strong id="totalEntregados">0</strong>
+    </div>
+  </section>
+
+  <section class="filtros">
+    <button onclick="filtrarPedidos('TODOS')">Todos</button>
+    <button onclick="filtrarPedidos('PENDIENTE')">Pendiente</button>
+    <button onclick="filtrarPedidos('EN_CAMINO')">En camino</button>
+    <button onclick="filtrarPedidos('ENTREGADO')">Entregado</button>
+  </section>
+
+  <section class="tabla-container">
+    <table>
+      <thead>
+        <tr>
+          <th>ID</th>
+          <th>Cliente</th>
+          <th>Teléfono</th>
+          <th>Dirección</th>
+          <th>Detalle</th>
+          <th>Método Pago</th>
+          <th>Estado Pago</th>
+          <th>Total</th>
+          <th>Estado</th>
+          <th>Repartidor</th>
+          <th>Acción</th>
+          <th>Comprobante</th>
+          <th>Fecha</th>
+        </tr>
+      </thead>
+
+      <tbody id="tablaPedidos"></tbody>
+    </table>
+  </section>
+
+</main>
+
+<script src="js/admin.js?v=4"></script>
 
 </body>
 </html>

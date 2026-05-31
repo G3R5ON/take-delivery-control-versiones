@@ -21,6 +21,9 @@ public class PedidoResponseDTO {
     private String codigoPago;
     private String estadoPago;
 
+    private Long idRepartidor;
+    private String repartidor;
+
     private List<DetalleResponseDTO> detalles;
 
     @Data

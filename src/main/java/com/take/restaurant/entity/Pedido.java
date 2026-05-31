@@ -37,6 +37,10 @@ public class Pedido {
     @JsonManagedReference
     private List<DetallePedido> detalles;
 
+    @ManyToOne
+    @JoinColumn(name = "id_repartidor")
+    private Usuario repartidor;
+
     @CreationTimestamp
     @Column(name = "fecha_creacion", updatable = false)
     private LocalDateTime fechaCreacion;

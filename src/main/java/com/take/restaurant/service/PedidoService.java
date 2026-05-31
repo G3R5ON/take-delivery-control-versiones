@@ -148,6 +148,11 @@ public class PedidoService {
         response.setCodigoPago(pedido.getCodigoPago());
         response.setEstadoPago(pedido.getEstadoPago());
 
+        if (pedido.getRepartidor() != null) {
+            response.setIdRepartidor(pedido.getRepartidor().getId());
+            response.setRepartidor(pedido.getRepartidor().getNombre());
+        }
+
         List<PedidoResponseDTO.DetalleResponseDTO> detalles = pedido.getDetalles()
                 .stream()
                 .map(detalle -> {
@@ -164,10 +169,44 @@ public class PedidoService {
 
         return response;
     }
-    public PedidoResponseDTO obtenerPedidoPorId(Long id) {
-    Pedido pedido = pedidoRepository.findById(id)
-            .orElseThrow(() -> new RuntimeException("Pedido no encontrado"));
 
-    return convertirAResponseDTO(pedido);
-}
+    public PedidoResponseDTO obtenerPedidoPorId(Long id) {
+        Pedido pedido = pedidoRepository.findById(id)
+                .orElseThrow(() -> new RuntimeException("Pedido no encontrado"));
+
+        return convertirAResponseDTO(pedido);
+    }
+
+    @Transactional
+    public PedidoResponseDTO asignarRepartidor(Long idPedido, Long idRepartidor) {
+        Pedido pedido = pedidoRepository.findById(idPedido)
+                .orElseThrow(() -> new RuntimeException("Pedido no encontrado"));
+
+        Usuario repartidor = usuarioRepository.findById(idRepartidor)
+                .orElseThrow(() -> new RuntimeException("Repartidor no encontrado"));
+
+        if (!"REPARTIDOR".equalsIgnoreCase(repartidor.getRol())) {
+            throw new RuntimeException("El usuario seleccionado no es repartidor");
+        }
+
+        if (!"ACTIVO".equalsIgnoreCase(repartidor.getEstado())) {
+            throw new RuntimeException("El repartidor no está activo");
+        }
+
+        pedido.setRepartidor(repartidor);
+
+        Pedido pedidoActualizado = pedidoRepository.save(pedido);
+
+        return convertirAResponseDTO(pedidoActualizado);
+    }
+
+    public List<PedidoResponseDTO> listarPedidosPorRepartidor(Long idRepartidor) {
+        return pedidoRepository.findByRepartidorId(
+                idRepartidor,
+                Sort.by(Sort.Direction.DESC, "fechaCreacion")
+        )
+        .stream()
+        .map(this::convertirAResponseDTO)
+        .toList();
+    }
 }

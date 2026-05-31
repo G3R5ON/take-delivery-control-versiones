@@ -1,209 +1,49 @@
-<!DOCTYPE html>
+<<!DOCTYPE html>
 <html lang="es">
 <head>
   <meta charset="UTF-8">
-  <title>Comprobante de Pedido - TAKE</title>
-  <style>
-    body {
-      font-family: Arial, sans-serif;
-      background: #f4f4f4;
-      padding: 30px;
-    }
+  <title>Comprobante - TAKE</title>
 
-    .comprobante {
-      max-width: 700px;
-      margin: auto;
-      background: white;
-      padding: 30px;
-      border-radius: 12px;
-      box-shadow: 0 0 12px rgba(0,0,0,0.15);
-    }
+  <link rel="icon" type="image/png" href="img/logo.png">
 
-    h1, h2 {
-      text-align: center;
-    }
-
-    h1 {
-      color: #222;
-    }
-
-    .seccion {
-      border-top: 1px solid #ccc;
-      margin-top: 20px;
-      padding-top: 15px;
-    }
-
-    .dato {
-      margin: 6px 0;
-    }
-
-    table {
-      width: 100%;
-      border-collapse: collapse;
-      margin-top: 12px;
-    }
-
-    th, td {
-      border: 1px solid #ddd;
-      padding: 10px;
-      text-align: left;
-    }
-
-    th {
-      background: #222;
-      color: white;
-    }
-
-    .total {
-      text-align: right;
-      font-size: 20px;
-      font-weight: bold;
-      margin-top: 20px;
-    }
-
-    .estado {
-      padding: 6px 12px;
-      background: #ffe08a;
-      border-radius: 8px;
-      font-weight: bold;
-    }
-
-    .botones {
-      text-align: center;
-      margin-top: 25px;
-    }
-
-    button {
-      padding: 10px 18px;
-      border: none;
-      background: #222;
-      color: white;
-      border-radius: 8px;
-      cursor: pointer;
-      margin: 5px;
-    }
-
-    button:hover {
-      background: #444;
-    }
-
-    @media print {
-      body {
-        background: white;
-      }
-
-      .botones {
-        display: none;
-      }
-
-      .comprobante {
-        box-shadow: none;
-      }
-    }
-  </style>
+  <link rel="stylesheet" href="css/comprobante.css">
 </head>
 <body>
 
-<div class="comprobante">
-  <h1>TAKE</h1>
-  <h2>Comprobante de Pedido</h2>
-
-  <div class="seccion">
-    <p class="dato"><strong>N° Pedido:</strong> <span id="idPedido"></span></p>
-    <p class="dato"><strong>Fecha:</strong> <span id="fecha"></span></p>
-    <p class="dato"><strong>Estado:</strong> <span class="estado" id="estado"></span></p>
+<header class="navbar">
+  <div class="logo">
+    <span>TAKE</span>
+    <small>Chifa & Pollería</small>
   </div>
 
-  <div class="seccion">
-    <h3>Datos del Cliente</h3>
-    <p class="dato"><strong>Nombre:</strong> <span id="cliente"></span></p>
-    <p class="dato"><strong>Teléfono:</strong> <span id="telefono"></span></p>
-    <p class="dato"><strong>Dirección:</strong> <span id="direccion"></span></p>
-  </div>
+  <nav id="navbarLinks">
+    <a href="index.html">Inicio</a>
+    <a href="menu.html">Nuevo pedido</a>
+    <a href="login.html">Personal</a>
+  </nav>
+</header>
 
-  <div class="seccion">
-    <h3>Detalle del Pedido</h3>
-    <table>
-      <thead>
-        <tr>
-          <th>Producto</th>
-          <th>Cantidad</th>
-          <th>Precio Unit.</th>
-          <th>Subtotal</th>
-        </tr>
-      </thead>
-      <tbody id="tablaDetalles"></tbody>
-    </table>
-  </div>
+<main class="contenedor">
+  <section class="ticket">
+    <div class="ticket-header">
+      <h1>Pedido registrado</h1>
+      <p id="mensajeComprobante">
+        Gracias por realizar tu pedido en Restaurante TAKE.
+      </p>
+    </div>
 
-  <div class="seccion">
-    <h3>Pago</h3>
-    <p class="dato"><strong>Método:</strong> <span id="metodoPago"></span></p>
-    <p class="dato"><strong>Código:</strong> <span id="codigoPago"></span></p>
-    <p class="dato"><strong>Estado de pago:</strong> <span id="estadoPago"></span></p>
-  </div>
+    <div id="comprobanteContenido"></div>
 
-  <p class="total">Total: S/ <span id="total"></span></p>
+    <div class="acciones">
+      <button id="btnImprimir" onclick="window.print()">Imprimir comprobante</button>
+      <a id="btnNuevoPedido" href="menu.html">Realizar otro pedido</a>
+      <a id="btnVolverPanel" href="admin.html" style="display:none;">Volver al panel</a>
+    </div>
+  </section>
+</main>
 
-  <div class="botones">
-    <button onclick="window.print()">Imprimir</button>
-    <button onclick="history.back()">Volver</button>
-  </div>
-</div>
-
-<script>
-  const params = new URLSearchParams(window.location.search);
-  const id = params.get("id");
-
-  if (!id) {
-    alert("Falta el ID del pedido en la URL");
-  }
-
-  fetch(`http://localhost:8081/api/pedidos/${id}`)
-  .then(response => {
-    if (!response.ok) {
-      throw new Error("Pedido no encontrado");
-    }
-    return response.json();
-  })
-  .then(pedido => {
-    document.getElementById("idPedido").textContent = pedido.idPedido;
-
-    const fecha = new Date(pedido.fechaCreacion);
-    document.getElementById("fecha").textContent = fecha.toLocaleString("es-PE");
-
-    document.getElementById("estado").textContent = pedido.estado;
-    document.getElementById("cliente").textContent = pedido.cliente;
-    document.getElementById("telefono").textContent = pedido.telefono;
-    document.getElementById("direccion").textContent = pedido.direccion;
-
-    document.getElementById("metodoPago").textContent = pedido.metodoPago || "No especificado";
-    document.getElementById("codigoPago").textContent = pedido.codigoPago || "-";
-    document.getElementById("estadoPago").textContent = pedido.estadoPago || "No especificado";
-
-    document.getElementById("total").textContent = Number(pedido.total).toFixed(2);
-
-    const tabla = document.getElementById("tablaDetalles");
-    tabla.innerHTML = "";
-
-    pedido.detalles.forEach(detalle => {
-      const fila = document.createElement("tr");
-
-      fila.innerHTML = `
-        <td>${detalle.producto}</td>
-        <td>${detalle.cantidad}</td>
-        <td>S/ ${Number(detalle.precioUnitario).toFixed(2)}</td>
-        <td>S/ ${Number(detalle.subtotal).toFixed(2)}</td>
-      `;
-
-      tabla.appendChild(fila);
-    });
-  })
-  .catch(error => {
-    console.error(error);
-    alert("No se pudo cargar el comprobante");
-  });
-</script>
+<script src="js/session.js"></script>
+<script src="js/comprobante.js"></script>
 
 </body>
 </html>

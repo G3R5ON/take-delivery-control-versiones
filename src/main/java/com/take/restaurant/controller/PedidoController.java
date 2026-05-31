@@ -32,11 +32,25 @@ public class PedidoController {
             @PathVariable Long id,
             @RequestParam String estado,
             @RequestParam Long idUsuario
-    )   {
+    ) {
         return pedidoService.actualizarEstado(id, estado, idUsuario);
     }
+
     @GetMapping("/{id}")
     public PedidoResponseDTO obtenerPedidoPorId(@PathVariable Long id) {
-         return pedidoService.obtenerPedidoPorId(id);
+        return pedidoService.obtenerPedidoPorId(id);
+    }
+
+    @PutMapping("/{id}/repartidor")
+    public PedidoResponseDTO asignarRepartidor(
+            @PathVariable Long id,
+            @RequestParam Long idRepartidor
+    ) {
+        return pedidoService.asignarRepartidor(id, idRepartidor);
+    }
+
+    @GetMapping("/repartidor/{idRepartidor}")
+    public List<PedidoResponseDTO> listarPedidosPorRepartidor(@PathVariable Long idRepartidor) {
+        return pedidoService.listarPedidosPorRepartidor(idRepartidor);
     }
 }
