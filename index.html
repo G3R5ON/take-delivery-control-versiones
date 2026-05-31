@@ -1,0 +1,321 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <title>TAKE - Pedidos Delivery</title>
+  <style>
+    body {
+      font-family: Arial, sans-serif;
+      background: #f5f5f5;
+      margin: 0;
+      padding: 20px;
+    }
+
+    h1, h2 {
+      color: #333;
+    }
+
+    .contenedor {
+      display: grid;
+      grid-template-columns: 2fr 1fr;
+      gap: 20px;
+    }
+
+    .card {
+      background: white;
+      padding: 15px;
+      border-radius: 10px;
+      margin-bottom: 12px;
+      box-shadow: 0 2px 5px rgba(0,0,0,0.1);
+    }
+
+    .producto {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+    }
+
+    button {
+      background: #222;
+      color: white;
+      border: none;
+      padding: 8px 12px;
+      border-radius: 6px;
+      cursor: pointer;
+    }
+
+    button:hover {
+      background: #444;
+    }
+
+    input, select {
+      width: 100%;
+      padding: 9px;
+      margin: 5px 0;
+      box-sizing: border-box;
+    }
+
+    .carrito-item {
+      border-bottom: 1px solid #ddd;
+      padding: 8px 0;
+    }
+
+    .total {
+      font-size: 20px;
+      font-weight: bold;
+      margin-top: 15px;
+    }
+
+    .categoria {
+      color: #777;
+      font-size: 14px;
+    }
+
+    .campo-pago {
+      display: none;
+    }
+  </style>
+</head>
+<body>
+
+<h1>🍽️ Restaurante TAKE - Pedidos Delivery</h1>
+
+<div class="contenedor">
+
+  <div>
+    <h2>Menú Digital</h2>
+    <div id="menu"></div>
+  </div>
+
+  <div>
+    <h2>Carrito</h2>
+    <div class="card">
+      <div id="carrito"></div>
+      <p class="total">Total: S/ <span id="total">0.00</span></p>
+    </div>
+
+    <h2>Datos del Cliente</h2>
+    <div class="card">
+      <input id="nombre" placeholder="Nombre completo">
+      <input id="telefono" placeholder="Teléfono">
+      <input id="direccion" placeholder="Dirección de entrega">
+      <input id="referencia" placeholder="Referencia de domicilio">
+    </div>
+
+    <h2>Forma de Pago</h2>
+    <div class="card">
+      <select id="metodoPago" onchange="mostrarCampoPago()">
+        <option value="">Seleccione método de pago</option>
+        <option value="EFECTIVO">Efectivo</option>
+        <option value="YAPE">Yape</option>
+        <option value="TARJETA">Tarjeta simulada</option>
+      </select>
+
+      <div id="campoCodigoPago" class="campo-pago">
+        <input id="codigoPago" placeholder="Código de operación / simulación">
+      </div>
+
+      <button onclick="confirmarPedido()">Confirmar pedido</button>
+    </div>
+  </div>
+
+</div>
+
+<script>
+const API_PRODUCTOS = "http://localhost:8081/api/productos";
+const API_PEDIDOS = "http://localhost:8081/api/pedidos";
+
+let carrito = [];
+
+function cargarProductos() {
+  fetch(API_PRODUCTOS)
+    .then(response => response.json())
+    .then(productos => {
+      const menu = document.getElementById("menu");
+      menu.innerHTML = "";
+
+      productos.forEach(producto => {
+        const categoria = producto.categoria ? producto.categoria.nombre : "Sin categoría";
+
+        menu.innerHTML += `
+          <div class="card producto">
+            <div>
+              <h3>${producto.nombre}</h3>
+              <p class="categoria">${categoria}</p>
+              <p>S/ ${Number(producto.precio).toFixed(2)}</p>
+            </div>
+            <button onclick='agregarAlCarrito(${JSON.stringify(producto)})'>
+              Agregar
+            </button>
+          </div>
+        `;
+      });
+    })
+    .catch(error => {
+      console.error("Error al cargar productos:", error);
+      alert("No se pudo cargar el menú");
+    });
+}
+
+function agregarAlCarrito(producto) {
+  const existente = carrito.find(item => item.id === producto.id);
+
+  if (existente) {
+    existente.cantidad++;
+  } else {
+    carrito.push({
+      id: producto.id,
+      nombre: producto.nombre,
+      precio: Number(producto.precio),
+      cantidad: 1
+    });
+  }
+
+  renderizarCarrito();
+}
+
+function quitarDelCarrito(id) {
+  carrito = carrito.filter(item => item.id !== id);
+  renderizarCarrito();
+}
+
+function aumentarCantidad(id) {
+  const item = carrito.find(p => p.id === id);
+  if (item) item.cantidad++;
+  renderizarCarrito();
+}
+
+function disminuirCantidad(id) {
+  const item = carrito.find(p => p.id === id);
+
+  if (item) {
+    item.cantidad--;
+
+    if (item.cantidad <= 0) {
+      quitarDelCarrito(id);
+      return;
+    }
+  }
+
+  renderizarCarrito();
+}
+
+function renderizarCarrito() {
+  const contenedor = document.getElementById("carrito");
+  contenedor.innerHTML = "";
+
+  if (carrito.length === 0) {
+    contenedor.innerHTML = "<p>El carrito está vacío.</p>";
+    document.getElementById("total").textContent = "0.00";
+    return;
+  }
+
+  carrito.forEach(item => {
+    contenedor.innerHTML += `
+      <div class="carrito-item">
+        <strong>${item.nombre}</strong><br>
+        S/ ${item.precio.toFixed(2)} x ${item.cantidad}
+        <br><br>
+        <button onclick="disminuirCantidad(${item.id})">-</button>
+        <button onclick="aumentarCantidad(${item.id})">+</button>
+        <button onclick="quitarDelCarrito(${item.id})">Quitar</button>
+      </div>
+    `;
+  });
+
+  document.getElementById("total").textContent = calcularTotal().toFixed(2);
+}
+
+function calcularTotal() {
+  return carrito.reduce((suma, item) => suma + item.precio * item.cantidad, 0);
+}
+
+function mostrarCampoPago() {
+  const metodoPago = document.getElementById("metodoPago").value;
+  const campo = document.getElementById("campoCodigoPago");
+
+  if (metodoPago === "YAPE" || metodoPago === "TARJETA") {
+    campo.style.display = "block";
+  } else {
+    campo.style.display = "none";
+    document.getElementById("codigoPago").value = "";
+  }
+}
+
+function confirmarPedido() {
+  const nombre = document.getElementById("nombre").value.trim();
+  const telefono = document.getElementById("telefono").value.trim();
+  const direccion = document.getElementById("direccion").value.trim();
+  const referencia = document.getElementById("referencia").value.trim();
+  const metodoPago = document.getElementById("metodoPago").value;
+  const codigoPago = document.getElementById("codigoPago").value.trim();
+
+  if (carrito.length === 0) {
+    alert("Agrega productos al carrito.");
+    return;
+  }
+
+  if (!nombre || !telefono || !direccion) {
+    alert("Completa los datos del cliente.");
+    return;
+  }
+
+  if (!metodoPago) {
+    alert("Seleccione un método de pago.");
+    return;
+  }
+
+  if ((metodoPago === "YAPE" || metodoPago === "TARJETA") && !codigoPago) {
+    alert("Ingrese el código de operación o simulación.");
+    return;
+  }
+
+  const pedido = {
+    clienteNombre: nombre,
+    telefono: telefono,
+    direccion: direccion,
+    referencia: referencia,
+    metodoPago: metodoPago,
+    codigoPago: codigoPago,
+    items: carrito.map(item => ({
+      productoId: item.id,
+      cantidad: item.cantidad
+    }))
+  };
+
+  fetch(API_PEDIDOS, {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json"
+    },
+    body: JSON.stringify(pedido)
+  })
+  .then(response => response.json())
+  .then(data => {
+    alert("Pedido registrado correctamente. Código: " + data.idPedido);
+
+    carrito = [];
+    renderizarCarrito();
+
+    document.getElementById("nombre").value = "";
+    document.getElementById("telefono").value = "";
+    document.getElementById("direccion").value = "";
+    document.getElementById("referencia").value = "";
+    document.getElementById("metodoPago").value = "";
+    document.getElementById("codigoPago").value = "";
+    mostrarCampoPago();
+
+    window.location.href = `http://localhost:8081/comprobante.html?id=${data.idPedido}`;
+  })
+  .catch(error => {
+    console.error("Error al registrar pedido:", error);
+    alert("No se pudo registrar el pedido.");
+  });
+}
+
+cargarProductos();
+renderizarCarrito();
+</script>
+
+</body>
+</html>
